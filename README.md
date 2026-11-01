@@ -90,66 +90,81 @@ price:
   <img alt="Dynamic electricity price over the coming hours, cheapest hour marked" src="images/utility-price-light.png" width="520">
 </picture>
 
-## Flow options
+## Options
 
-| Option | Default | |
-|---|---|---|
-| `household` | | What the house is using in total. |
-| `solar` | | What the panels are producing. |
-| `grid` | | Signed: positive is drawing from the grid, negative is feeding it. |
-| `grid_import` | | Or the two directions as separate sensors, if that is how your meter publishes them. |
-| `grid_export` | | The other direction. |
-| `solar_forecast` | | Expected production for the whole day, shown beside the solar figure. |
-| `solar_remaining` | | How much of that is still to come. Shown when you hover the solar figure. |
-| `unit` | | Unit to show when the entities don't report one. |
-| `decimals` | `1` | Decimals on the flow figures and the device list. |
+`type: custom:home-utility-card` is required. Of the rest, at least one of the
+flow entities or `price.entity` has to be there, or the card reports a
+configuration error: a card with nothing to show is a mistake, not an empty
+card.
+
+### Flow
+
+The flow block is drawn when any of these entities is configured.
+
+| Option | Values | Default | What it does |
+|---|---|---|---|
+| `household` | a sensor entity | none | What the house is using in total. The big figure at the top. |
+| `solar` | a sensor entity | none | What the panels are producing. |
+| `grid` | a sensor entity | none | The grid in one sensor: positive is drawing from the grid, negative is feeding it. Only used when `grid_import` and `grid_export` are both missing or unavailable. |
+| `grid_import` | a sensor entity | none | What is drawn from the grid, for meters that publish the two directions separately. |
+| `grid_export` | a sensor entity | none | What is fed into the grid. |
+| `solar_forecast` | a sensor entity | none | Expected production for the whole day, shown beside the solar figure. |
+| `solar_remaining` | a sensor entity | none | How much of the forecast is still to come. Shown when you hover the solar figure. |
+| `unit` | text | the entities' own unit | The unit to show when the entities don't report one. It doesn't override a unit they do report. |
+| `decimals` | a whole number | `1` | Decimals on the flow figures and in the device list. `0` or less shows whole numbers, grouped from 10 000 up (`10 240 W`). |
 
 Solar kept in the house is production minus what went back out, which is how
-Home Assistant's Energy dashboard works it out too, so the two agree.
+Home Assistant's Energy dashboard works it out too, so the two agree. All flow
+entities should use the same unit: the card doesn't convert between W and kW.
 
-### The device list
+### Device list
 
 The biggest consumers, ranked, under the flow figures.
 
-| Option | Default | |
-|---|---|---|
-| `devices` | `0` | How many to list. `0` hides the list. |
-| `suffix` | | The ending of the per-device entities to rank, e.g. `_power`. Needed whenever `devices` is set. |
-| `exclude` | `[]` | Entity ids or names to leave out. `kitchen` leaves out `sensor.kitchen_*` but not `sensor.kitchenette_*`. |
-| `floor` | `0` | Values at or below this count as idle and aren't listed. |
-| `domain` | `sensor` | The domain the per-device entities are in. |
-| `strip` | see below | A regular expression that takes the measurement word off the end of a device name. |
-| `separator` | `" · "` | What goes between the parts of a device name. |
-| `collapsible` | `false` | Adds a fold to show and hide the list. |
-| `collapsed` | `true` | Whether a collapsible list starts folded. |
+| Option | Values | Default | What it does |
+|---|---|---|---|
+| `devices` | a whole number, `0` or more | `0` | How many devices to list. `0` hides the list. |
+| `suffix` | text | none | The ending of the per-device entity ids to rank, such as `_power` or `_energy_daily`. Required when `devices` is more than 0. |
+| `domain` | a domain | `sensor` | The domain the per-device entities are in. |
+| `exclude` | a list of entity ids or names | `[]` | Devices to leave out. A name matches whole leading parts of the entity id: `kitchen` leaves out `sensor.kitchen_*` but not `sensor.kitchenette_*`. |
+| `floor` | a number | `0` | Values at or below this count as idle and aren't listed. |
+| `strip` | a regular expression, or `""` | see below | Taken off the end of each device's name, ignoring case. `""` keeps the names as they are. |
+| `separator` | text, or `""` | `" · "` | Replaces the `\|` and `/` between the parts of a device's name. `""` leaves them as they are. |
+| `collapsible` | `true` or `false` | `false` | Adds a button to fold the list away. Folded, the card is as tall as it would be without a device list. |
+| `collapsed` | `true` or `false` | `true` | Whether a collapsible list starts folded. Only read when the card is first drawn. |
 
-The `household`, `solar` and `grid` entities are left out of the ranking by
-themselves; they are the house as a whole, not one of its devices.
+The flow entities themselves are left out of the ranking automatically; they
+are the house as a whole, not one of its devices.
 
-The default `strip` is `\s*[|/-]\s*(power|energy(\s*[|/-]\s*daily)?)\s*$`, made
-for names like `Kitchen | Dishwasher | Power`, which then read
-`Kitchen · Dishwasher`. Set it to match how your entities are named.
+The default `strip` is `\s*[|/-]\s*(power|energy(\s*[|/-]\s*daily)?)\s*$`. It
+is made for names like `Kitchen | Dishwasher | Power`, which then read
+`Kitchen · Dishwasher`. Set it to fit how your entities are named.
 
-## Price options
+### Price
 
-The price block is drawn when `price.entity` is set.
+The price block is drawn when `price.entity` is set. All of these go under
+`price:`.
 
-| Option | Default | |
-|---|---|---|
-| `price.entity` | | The current price, all in. |
-| `price.curve` | `true` | Whether to draw the price curve. |
-| `price.curve_entity` | `price.entity` | Where the curve comes from. |
-| `price.curve_attribute` | detected | The attribute holding the prices. |
-| `price.curve_multiply` | `1` | A number, or an entity holding one. |
-| `price.curve_add` | `[]` | Numbers or entities, added to every point. |
-| `price.window_back` | `3` | Hours of history on screen. |
-| `price.window_ahead` | `36` | Hours ahead, as far as the entity publishes them. |
-| `price.decimals` | `3` | Decimals in the price block. |
-| `price.unit` | | Unit to show when the entity doesn't report one. |
+| Option | Values | Default | What it does |
+|---|---|---|---|
+| `entity` | a sensor entity | none | The price you pay now, all in. The big figure in the block. |
+| `curve` | `true` or `false` | `true` | Whether to draw the price curve under it. |
+| `curve_entity` | a sensor entity | `price.entity` | The entity the curve's prices are read from. |
+| `curve_attribute` | an attribute name | found by itself | The attribute that holds the list of prices. Leave it out and the card looks through the entity's attributes itself (see below). |
+| `curve_multiply` | a number, or an entity holding one | `1` | Every point of the curve is multiplied by this first. |
+| `curve_add` | a list of numbers and/or entities | `[]` | Added to every point after multiplying. Entities count with their current state. |
+| `window_back` | a number of hours | `3` | How much of the past the curve shows. |
+| `window_ahead` | a number of hours | `36` | How far ahead the curve shows, as far as the entity has prices. `0` counts as 24. |
+| `decimals` | a whole number, `0` to `100` | `3` | Decimals in the price block. |
+| `unit` | text | the entity's own unit | The unit to show when the entity doesn't report one. |
 
-The card finds the curve itself in most price integrations: it looks for a list
-of points with a time (`from`, `start`, `time`, `datetime`, …) and a price
-(`price`, `total`, `value`, …), and merges today's and tomorrow's lists.
+Without `curve_attribute`, the card looks at `prices`, `tomorrow_prices`,
+`upcoming_prices`, `prices_today`, `prices_tomorrow`, `all_prices`,
+`raw_today`, `today` and `data`, then at every other attribute. It takes each
+list of points that has a time (`from`, `from_time`, `date_from`, `time`,
+`start`, `datetime` or `till`) and a price (`price`, `total`, `value`,
+`market_price`, `all_in` or `amount`). Lists for today and tomorrow are merged,
+and a point that appears twice counts once.
 
 `curve_multiply` and `curve_add` are there because the curve entity often only
 publishes the market price, while the headline entity publishes what you
@@ -172,31 +187,41 @@ today has passed, and that is when tomorrow's prices are the interesting part.
 
 ## text
 
-Every string the card draws, so it can be translated or reworded. Any subset;
-the rest keep their defaults. An unknown key is an error rather than being
-ignored.
+Every string the card draws, so it can be translated or reworded. A mapping
+under `text:`; give only the words you want to change. Each value is text. An
+unknown key is a configuration error rather than being ignored.
 
-| Key | Default |
-|---|---|
-| `solar` | `Solar` |
-| `remaining` | `still expected today` |
-| `from_grid` | `From grid` |
-| `to_grid` | `To grid` |
-| `headline` | `used` |
-| `from_solar` | `from solar` |
-| `exported` | `exported` |
-| `devices` | `Using most` |
-| `show_devices` | `Show what is using most` |
-| `hide_devices` | `Hide what is using most` |
-| `forecast` | `Forecast:` |
-| `cheapest` | `Cheapest` |
-| `today` | `Today` |
-| `tomorrow` | `Tomorrow` |
-| `no_data` | `No readings available` |
-| `no_price` | `Price sensor unavailable` |
-| `no_forecast` | `No price forecast available` |
+| Key | Default | Where it shows |
+|---|---|---|
+| `solar` | `Solar` | label of the solar figure |
+| `remaining` | `still expected today` | after the remaining forecast, when hovering the solar figure |
+| `from_grid` | `From grid` | label of the grid import figure |
+| `to_grid` | `To grid` | label of the grid export figure |
+| `headline` | `used` | after the big household figure |
+| `from_solar` | `from solar` | after the percentage, when you're drawing from the grid |
+| `exported` | `exported` | after the percentage, when you're feeding the grid |
+| `devices` | `Using most` | heading of the device list |
+| `show_devices` | `Show what is using most` | label of the fold button when folded |
+| `hide_devices` | `Hide what is using most` | label of the fold button when open |
+| `forecast` | `Forecast:` | before the solar forecast |
+| `cheapest` | `Cheapest` | before the cheapest hour in the price block |
+| `today` | `Today` | day label on the price curve |
+| `tomorrow` | `Tomorrow` | day label on the price curve |
+| `no_data` | `No readings available` | when none of the flow entities has a value |
+| `no_price` | `Price sensor unavailable` | when `price.entity` has no value |
+| `no_forecast` | `No price forecast available` | when no curve could be found |
+
+```yaml
+text:
+  solar: Zon
+  from_grid: Van het net
+  to_grid: Naar het net
+  headline: verbruikt
+```
 
 Entity and area names come from Home Assistant, so they aren't in here.
+`labels:` is accepted as an older name for `text:`; when both are there,
+`text:` wins.
 
 ## Interaction
 
