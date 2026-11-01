@@ -154,18 +154,89 @@ function numberFrom(hass, value, fallback) {
   return v === null ? fallback : v;
 }
 
-/* Thin-space grouping rather than a locale separator: the card mixes
- * "10 240 W" with "13.3 kWh" and a locale comma would collide with the decimal
- * point. Four digits are left alone - typographic convention leaves thousands
- * ungrouped until five, and "1 391" otherwise reads as two numbers. */
+/* How this viewer wants numbers and times written: their Home Assistant
+ * profile, read the way Home Assistant's own cards read it. Each choice can
+ * be a fixed format, "follow the language" or "follow the system". Set from
+ * hass.locale on every update; a browser has one profile, so every card on
+ * the page shares it. */
+const FMT = { key: null, language: undefined, numbers: undefined, grouping: true, h12: false };
+
+function applyLocale(locale) {
+  const l = locale || {};
+  const key = `${l.language}|${l.number_format}|${l.time_format}`;
+  if (key === FMT.key) return;
+  FMT.key = key;
+  FMT.language = l.language || undefined;
+  FMT.numbers = numberLocale(l.number_format, FMT.language);
+  FMT.grouping = l.number_format !== "none";
+  FMT.h12 = useAmPm(l.time_format, FMT.language);
+}
+
+function numberLocale(format, language) {
+  switch (format) {
+    case "comma_decimal":
+      return ["en-US", "en"];
+    case "decimal_comma":
+      return ["de", "es", "it"];
+    case "space_comma":
+      return ["fr", "sv", "cs"];
+    case "system":
+      return undefined;
+    case "none":
+      return "en-US";
+    default:
+      return language;
+  }
+}
+
+/* "language" and "system" are answered by asking the language, or the
+ * browser, how it writes ten in the evening. */
+function useAmPm(format, language) {
+  if (format === "12") return true;
+  if (format === "24") return false;
+  const lang = format === "system" ? undefined : language;
+  try {
+    return new Date(2023, 0, 1, 22).toLocaleString(lang).includes("10");
+  } catch (err) {
+    return false;
+  }
+}
+
+/* Formatters, built once per format and kept: building one costs about a
+ * millisecond on a wall tablet, and this card formats on every update. */
+const FORMATTERS = new Map();
+
+function formatter(key, make) {
+  let f = FORMATTERS.get(key);
+  if (f === undefined) {
+    try {
+      f = make();
+    } catch (err) {
+      f = null; // a language tag this engine will not take
+    }
+    FORMATTERS.set(key, f);
+  }
+  return f;
+}
+
+function number(v, decimals) {
+  const f = formatter(`n|${FMT.key}|${decimals}`, () =>
+    new Intl.NumberFormat(FMT.numbers, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+      useGrouping: FMT.grouping,
+    })
+  );
+  return f ? f.format(v) : Number(v).toFixed(decimals);
+}
+
+// Whole numbers drop the sign, as they always have: a figure here is a size.
 function groupInt(v) {
-  const n = Math.round(Math.abs(v));
-  const text = String(n);
-  return n < 10000 ? text : text.replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f");
+  return number(Math.round(Math.abs(v)), 0);
 }
 
 function fixed(v, d) {
-  return Number(v).toFixed(d);
+  return number(Number(v), d);
 }
 
 /* Formats to the block's precision: whole numbers keep the thousands grouping,
@@ -191,7 +262,14 @@ function esc(s) {
 
 function hhmm(d) {
   if (!(d instanceof Date) || isNaN(d.getTime())) return null;
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const f = formatter(`t|${FMT.key}`, () =>
+    new Intl.DateTimeFormat(FMT.language, {
+      hour: "numeric",
+      minute: "2-digit",
+      hourCycle: FMT.h12 ? "h12" : "h23",
+    })
+  );
+  return f ? f.format(d) : `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 /* Once the window runs past midnight a bare "23:00" is ambiguous, so the end
@@ -216,18 +294,15 @@ function segments(ownSolar, toGrid, fromGrid) {
   return { wA: w(a), wB: w(b), wC: w(c) };
 }
 
-/* Weekday names, built once and kept.
- *
- * toLocaleDateString with options constructs a formatter internally on every
- * call, and on a wall tablet's CPU that is about a millisecond. The curve's
- * day labels and the window's end label both went through it on every
- * rebuild. */
-const WEEKDAYS = new Map();
-
+/* Weekday names, in the profile's language. Through formatter() for the same
+ * reason as the rest: the curve's day labels and the window's end label used
+ * to build one on every rebuild. */
 function weekday(width) {
-  let f = WEEKDAYS.get(width);
-  if (!f) WEEKDAYS.set(width, (f = new Intl.DateTimeFormat(undefined, { weekday: width })));
-  return f;
+  return (
+    formatter(`wd|${FMT.language}|${width}`, () =>
+      new Intl.DateTimeFormat(FMT.language, { weekday: width })
+    ) || new Intl.DateTimeFormat(undefined, { weekday: width })
+  );
 }
 
 /* A list option given one value - `exclude: kitchen`, `curve_add: 0.05` - is
@@ -449,6 +524,7 @@ class HomeUtilityCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    applyLocale(hass && hass.locale);
     if (!this._config) return;
     if (!this._built) this._build();
     this._render();
@@ -874,7 +950,7 @@ class HomeUtilityCard extends HTMLElement {
    * _priceModel changes that whenever it rebuilds the curve or the clock
    * moves on a minute. */
   _priceCard(p) {
-    const key = `${this._winKey}|${JSON.stringify({ ...p, curve: undefined })}`;
+    const key = `${this._winKey}|${FMT.key}|${JSON.stringify({ ...p, curve: undefined })}`;
     if (this._priceKey === key) return this._priceMarkup;
     this._priceKey = key;
     this._priceMarkup = this._buildPriceCard(p);

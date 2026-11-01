@@ -111,7 +111,7 @@ The flow block is drawn when any of these entities is configured.
 | `solar_forecast` | a sensor entity | none | Expected production for the whole day, shown beside the solar figure. |
 | `solar_remaining` | a sensor entity | none | How much of the forecast is still to come. Shown when you hover the solar figure. |
 | `unit` | text | the entities' own unit | The unit to show when the entities don't report one. It doesn't override a unit they do report. |
-| `decimals` | a whole number | `1` | Decimals on the flow figures and in the device list. `0` or less shows whole numbers, grouped from 10 000 up (`10 240 W`). |
+| `decimals` | a whole number | `1` | Decimals on the flow figures and in the device list. `0` or less shows whole numbers. Separators follow the number format in your Home Assistant profile (`1,840 W`, `1.840 W`, ...). |
 
 Solar kept in the house is production minus what went back out, which is how
 Home Assistant's Energy dashboard works it out too, so the two agree. All flow
