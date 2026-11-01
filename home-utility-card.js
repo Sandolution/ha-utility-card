@@ -25,7 +25,7 @@
  * Configuration reference: home-utility-card.md, beside this file.
  */
 
-const CARD_BUILD = "2026-10-09a";
+const CARD_BUILD = "1.0.0";
 
 const DEFAULTS = {
   /* --- flow block. Omit these and the block is not drawn. --------------- */
