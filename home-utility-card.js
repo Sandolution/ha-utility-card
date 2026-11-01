@@ -412,11 +412,11 @@ class HomeUtilityCard extends HTMLElement {
     }
 
     /* Entities named elsewhere in this config describe the house as a whole,
-     * so they are kept out of the per-device ranking automatically. */
-    cfg.exclude = FLOW_KEYS.map((k) => cfg[k])
-      .filter(Boolean)
-      .map((id) => toStem(id, cfg))
-      .concat((given.exclude || []).map((v) => toStem(v, cfg)));
+     * so they are kept out of the per-device ranking automatically - by their
+     * exact id. As a prefix, household: sensor.home_power would also take
+     * sensor.home_office_desk_power with it, and nothing would say why. */
+    cfg.flowIds = new Set(FLOW_KEYS.map((k) => cfg[k]).filter(Boolean));
+    cfg.exclude = (given.exclude || []).map((v) => toStem(v, cfg));
 
     this._config = cfg;
     this._sig = null; // force a redraw on the next hass tick
@@ -535,7 +535,7 @@ class HomeUtilityCard extends HTMLElement {
     for (const id in hass.states) {
       if (!id.startsWith(prefix) || !id.endsWith(c.suffix)) continue;
       const stem = id.slice(prefix.length, id.length - c.suffix.length);
-      if (isExcluded(stem, c.exclude)) continue;
+      if (c.flowIds.has(id) || isExcluded(stem, c.exclude)) continue;
       list.push({ stem, id });
     }
 
