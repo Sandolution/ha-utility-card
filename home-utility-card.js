@@ -1064,6 +1064,122 @@ class HomeUtilityCard extends HTMLElement {
     return `<div class="curve" aria-hidden="true">${bars.join("")}${marks.join("")}</div>`;
   }
 
+  /* The visual editor. Home Assistant draws this as a form, the same one its
+   * own cards use, and keeps any key the form doesn't show - so `text`,
+   * `curve_multiply`, `curve_add` and `curve_attribute` stay in YAML and
+   * survive an edit. The first two take a number or an entity, which no
+   * single form field can offer, and the attribute is rarely needed. A default is given where the form would
+   * otherwise show an empty box or an unticked switch for a setting that is
+   * on. */
+  static getConfigForm() {
+    const sensor = { entity: { domain: "sensor" } };
+    const labels = {
+      household: "House total",
+      solar: "Solar production",
+      grid: "Grid (one sensor, + is drawing)",
+      grid_import: "Grid import",
+      grid_export: "Grid export",
+      solar_forecast: "Solar forecast for today",
+      solar_remaining: "Solar forecast still to come",
+      unit: "Unit when an entity has none",
+      decimals: "Decimals",
+      devices: "Devices to list",
+      suffix: "Entity id ending",
+      domain: "Domain",
+      exclude: "Leave out",
+      floor: "Idle at or below",
+      strip: "Take off the end of names (regular expression)",
+      separator: "Between name parts",
+      collapsible: "Can be folded away",
+      collapsed: "Starts folded",
+      entity: "Price now",
+      curve: "Price curve",
+      curve_entity: "Curve prices from",
+      window_back: "Hours back",
+      window_ahead: "Hours ahead",
+    };
+    const helpers = {
+      grid: "Only used without grid import and export.",
+      suffix: "Such as _power or _energy_daily. Needed to list devices.",
+      exclude: "A name leaves out every entity id starting with it.",
+      separator: "Replaces | and / in the device names.",
+      curve_entity: "Leave empty to use the price entity.",
+    };
+    return {
+      schema: [
+        {
+          type: "expandable",
+          name: "flow", // flattened: the fields are stored at the top level
+          title: "Where the electricity comes from",
+          flatten: true,
+          expanded: true,
+          schema: [
+            { name: "household", selector: sensor },
+            { name: "solar", selector: sensor },
+            { name: "grid", selector: sensor },
+            {
+              type: "grid",
+              name: "",
+              schema: [
+                { name: "grid_import", selector: sensor },
+                { name: "grid_export", selector: sensor },
+                { name: "solar_forecast", selector: sensor },
+                { name: "solar_remaining", selector: sensor },
+                { name: "unit", selector: { text: {} } },
+                { name: "decimals", default: DEFAULTS.decimals, selector: { number: { min: 0, max: 3, mode: "box" } } },
+              ],
+            },
+          ],
+        },
+        {
+          type: "expandable",
+          name: "usage", // flattened: the fields are stored at the top level
+          title: "What uses it",
+          flatten: true,
+          schema: [
+            {
+              type: "grid",
+              name: "",
+              schema: [
+                { name: "devices", default: 0, selector: { number: { min: 0, max: 30, mode: "box" } } },
+                { name: "suffix", selector: { text: {} } },
+                { name: "floor", default: DEFAULTS.floor, selector: { number: { mode: "box" } } },
+                { name: "domain", default: DEFAULTS.domain, selector: { text: {} } },
+                { name: "collapsible", default: DEFAULTS.collapsible, selector: { boolean: {} } },
+                { name: "collapsed", default: DEFAULTS.collapsed, selector: { boolean: {} } },
+              ],
+            },
+            { name: "exclude", selector: { text: { multiple: true } } },
+            { name: "separator", default: DEFAULTS.separator, selector: { text: {} } },
+            { name: "strip", selector: { text: {} } },
+          ],
+        },
+        {
+          type: "expandable",
+          title: "What it costs",
+          name: "price",
+          schema: [
+            { name: "entity", selector: sensor },
+            { name: "curve", default: DEFAULTS.price.curve, selector: { boolean: {} } },
+            { name: "curve_entity", selector: sensor },
+            {
+              type: "grid",
+              name: "",
+              schema: [
+                { name: "window_back", default: DEFAULTS.price.window_back, selector: { number: { min: 0, max: 48, mode: "box", unit_of_measurement: "h" } } },
+                { name: "window_ahead", default: DEFAULTS.price.window_ahead, selector: { number: { min: 0, max: 96, mode: "box", unit_of_measurement: "h" } } },
+                { name: "decimals", default: DEFAULTS.price.decimals, selector: { number: { min: 0, max: 5, mode: "box" } } },
+                { name: "unit", selector: { text: {} } },
+              ],
+            },
+          ],
+        },
+      ],
+      computeLabel: (s) => labels[s.name],
+      computeHelper: (s) => helpers[s.name],
+    };
+  }
+
   static getStubConfig(hass) {
     const find = (suffix) =>
       Object.keys((hass && hass.states) || {}).find(

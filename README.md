@@ -46,6 +46,12 @@ them.
 Every option can be left out. A configuration only needs the lines where it
 differs from the defaults below, and at least one entity.
 
+Add it from the dashboard's **Add card** dialog and the card editor covers the
+flow, the device list and the price block. A few things are written in the
+code editor instead: `text`, `curve_attribute`, and `curve_multiply` and
+`curve_add`, which take a number or an entity where a form field takes one or
+the other. The editor keeps whatever it doesn't show.
+
 ### Live power
 
 ```yaml
