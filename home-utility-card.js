@@ -169,11 +169,12 @@ function fixed(v, d) {
 }
 
 /* Formats to the block's precision: whole numbers keep the thousands grouping,
- * anything finer gets fixed decimals. */
+ * anything finer gets fixed decimals. The result is markup, so the unit is
+ * escaped here. */
 function amount(v, decimals, unit) {
   if (v === null || v === undefined) return "\u2014";
   const text = decimals > 0 ? fixed(v, decimals) : groupInt(v);
-  return unit ? `${text}\u202f${unit}` : text;
+  return unit ? `${text}\u202f${esc(unit)}` : text;
 }
 
 function pct(part, whole) {
@@ -771,11 +772,12 @@ class HomeUtilityCard extends HTMLElement {
     /* What is still to come, on hover. The figure is an aside about an aside -
      * a prediction about the rest of a prediction - so it does not get a place
      * on the face of the card. It had none for a while and nothing read it
-     * either, which made `solar_remaining:` an option that did nothing. */
+     * either, which made `solar_remaining:` an option that did nothing.
+     * Plain text rather than amount()'s markup: keyItem escapes the title. */
     const solarTip =
       f.remaining === null
         ? ""
-        : `${amount(f.remaining, c.decimals, f.unit)} ${L.remaining}`;
+        : `${amount(f.remaining, c.decimals, "")}${f.unit ? "\u202f" + f.unit : ""} ${L.remaining}`;
 
     /* The chevron rides on the key row, open or shut.
      *
