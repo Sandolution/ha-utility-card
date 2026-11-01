@@ -967,7 +967,7 @@ class HomeUtilityCard extends HTMLElement {
     if (p.cheapest) {
       cheapest =
         `<span class="cheap">${esc(L.cheapest)} ` +
-        `${hhmm(p.cheapest.from)}\u2013${hhmm(p.cheapest.till)} \u00b7 ` +
+        `${hhmm(p.cheapest.from)}-${hhmm(p.cheapest.till)} \u00b7 ` +
         `${amount(p.cheapest.value, d, p.unit)}</span>`;
     }
 

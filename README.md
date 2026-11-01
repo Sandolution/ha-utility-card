@@ -29,7 +29,7 @@ them.
 
 ### HACS
 
-1. In HACS, open the menu (⋮) → **Custom repositories**.
+1. In HACS, open the menu (⋮) > **Custom repositories**.
 2. Add `https://github.com/Sandolution/ha-utility-card` with the type **Dashboard**.
 3. Install **Home Utility Card**. HACS adds the dashboard resource for you.
 4. Reload the browser.
@@ -37,7 +37,7 @@ them.
 ### Manual
 
 1. Download `home-utility-card.js` from this repository into `config/www/`.
-2. Add it as a resource: **Settings → Dashboards → ⋮ → Resources**, URL
+2. Add it as a resource: **Settings > Dashboards > ⋮ > Resources**, URL
    `/local/home-utility-card.js`, type **JavaScript module**.
 3. Reload the browser.
 
@@ -126,7 +126,7 @@ The biggest consumers, ranked, under the flow figures.
 | `devices` | a whole number, `0` or more | `0` | How many devices to list. `0` hides the list. |
 | `suffix` | text | none | The ending of the per-device entity ids to rank, such as `_power` or `_energy_daily`. Required when `devices` is more than 0. |
 | `domain` | a domain | `sensor` | The domain the per-device entities are in. |
-| `exclude` | a name or an entity id, or a list of them | `[]` | Devices to leave out. A name matches whole leading parts of the entity id: `kitchen` leaves out `sensor.kitchen_*` but not `sensor.kitchenette_*`. The entities given for the flow (`household`, `solar`, `grid`, …) are left out by themselves, without their name parts. |
+| `exclude` | a name or an entity id, or a list of them | `[]` | Devices to leave out. A name matches whole leading parts of the entity id: `kitchen` leaves out `sensor.kitchen_*` but not `sensor.kitchenette_*`. The entities given for the flow (`household`, `solar`, `grid` and so on) are left out by themselves, without their name parts. |
 | `floor` | a number | `0` | Values at or below this count as idle and aren't listed. |
 | `strip` | a regular expression, or `""` | see below | Taken off the end of each device's name, ignoring case. `""` keeps the names as they are. |
 | `separator` | text, or `""` | `" · "` | Replaces the `\|` and `/` between the parts of a device's name. `""` leaves them as they are. |
