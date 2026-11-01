@@ -172,7 +172,7 @@ function fixed(v, d) {
  * anything finer gets fixed decimals. The result is markup, so the unit is
  * escaped here. */
 function amount(v, decimals, unit) {
-  if (v === null || v === undefined) return "\u2014";
+  if (v === null || v === undefined) return "-";
   const text = decimals > 0 ? fixed(v, decimals) : groupInt(v);
   return unit ? `${text}\u202f${esc(unit)}` : text;
 }
@@ -579,6 +579,14 @@ class HomeUtilityCard extends HTMLElement {
       exported = Math.max(-net, 0);
     }
 
+    /* A meter that is configured but has no reading is unknown, not zero:
+     * counted as 0, an offline grid meter drew a house running on its own
+     * solar, and nothing on the card said otherwise. One that is not
+     * configured at all is 0, as it always was. */
+    const solarKnown = !c.solar || solar !== null;
+    const importKnown = c.grid_import ? imported !== null : !c.grid || net !== null;
+    const exportKnown = c.grid_export ? exported !== null : !c.grid || net !== null;
+
     const flow = {
       unit: unitOf(hass, [c.household, c.solar, c.grid, c.grid_import], c.unit || ""),
       household,
@@ -599,16 +607,29 @@ class HomeUtilityCard extends HTMLElement {
     // way, which is what makes the two agree.
     const own = Math.max(sol - exp, 0);
 
-    flow.ownSolar = own;
-    flow.fromGrid = imp;
-    flow.toGrid = exp;
-    flow.total = household !== null ? household : own + imp;
-    Object.assign(flow, segments(own, exp, imp));
+    flow.ownSolar = solarKnown && exportKnown ? own : null;
+    flow.fromGrid = importKnown ? imp : null;
+    flow.toGrid = exportKnown ? exp : null;
+    flow.total =
+      household !== null
+        ? household
+        : flow.ownSolar !== null && importKnown
+        ? own + imp
+        : null;
+    /* The bar is proportions, and without every reading there are none: a
+     * full solar bar with the grid unknown says "all solar" all the same. */
+    const allKnown = solarKnown && importKnown && exportKnown;
+    Object.assign(flow, allKnown ? segments(own, exp, imp) : segments(0, 0, 0));
 
     /* Drawing from the grid, the interesting share is how much came from our
-     * own roof. Feeding it, it is how much of production went out. */
+     * own roof. Feeding it, it is how much of production went out. Either
+     * needs every reading. */
     flow.importing = imp > 0 || sol === 0;
-    flow.share = flow.importing ? pct(own, own + imp) : pct(exp, sol);
+    flow.share = !allKnown
+      ? null
+      : flow.importing
+      ? pct(own, own + imp)
+      : pct(exp, sol);
     return flow;
   }
 
@@ -854,7 +875,7 @@ class HomeUtilityCard extends HTMLElement {
 
     rows.push(
       headline(
-        p.now === null ? "\u2014" : fixed(p.now, d),
+        p.now === null ? "-" : fixed(p.now, d),
         esc(p.unit || ""),
         cheapest,
         c.price.entity
