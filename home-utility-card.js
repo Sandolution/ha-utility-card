@@ -788,7 +788,7 @@ class HomeUtilityCard extends HTMLElement {
     const rows = [];
 
     if (!f.ok) {
-      return `<div class="card"><div class="empty">${esc(L.no_data)}</div></div>`;
+      return `<ha-card class="card"><div class="empty">${esc(L.no_data)}</div></ha-card>`;
     }
 
     const note =
@@ -858,7 +858,7 @@ class HomeUtilityCard extends HTMLElement {
       rows.push(deviceList(devices, c.decimals));
     }
 
-    return `<div class="card">${rows.join("")}</div>`;
+    return `<ha-card class="card">${rows.join("")}</ha-card>`;
   }
 
   /* The sparkline is one element per interval - about 190 of them - and this
@@ -921,7 +921,7 @@ class HomeUtilityCard extends HTMLElement {
       rows.push(`<div class="empty">${esc(p.now === null ? L.no_price : L.no_forecast)}</div>`);
     }
 
-    return `<div class="card">${rows.join("")}</div>`;
+    return `<ha-card class="card">${rows.join("")}</ha-card>`;
   }
 
   /* Only days that begin inside the window get a label. The first day is
@@ -1082,9 +1082,10 @@ const STYLES = `
 :host { display: block; line-height: var(--ha-line-height-normal, 1.6); }
 .root { display: flex; flex-direction: column; }
 
+/* Each block is Home Assistant's own ha-card, so the background, border,
+   corners and shadow are whatever the theme says a card is - and card-mod has
+   the element it looks for. Only the inside is this card's. */
 .card {
-  background: var(--ha-card-background, var(--card-background-color));
-  border-radius: var(--ha-card-border-radius, 16px);
   padding: 13px 14px;
   display: flex; flex-direction: column; gap: 10px;
 }
