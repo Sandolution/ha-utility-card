@@ -172,7 +172,8 @@ function fixed(v, d) {
  * anything finer gets fixed decimals. The result is markup, so the unit is
  * escaped here. */
 function amount(v, decimals, unit) {
-  if (v === null || v === undefined) return "-";
+  // A reading that exists but cannot be seen: a meter offline, a sensor restarting.
+  if (v === null || v === undefined) return "?";
   const text = decimals > 0 ? fixed(v, decimals) : groupInt(v);
   return unit ? `${text}\u202f${esc(unit)}` : text;
 }
@@ -227,6 +228,21 @@ function weekday(width) {
   let f = WEEKDAYS.get(width);
   if (!f) WEEKDAYS.set(width, (f = new Intl.DateTimeFormat(undefined, { weekday: width })));
   return f;
+}
+
+/* A list option given one value - `exclude: kitchen`, `curve_add: 0.05` - is
+ * how YAML reads naturally with one, so it counts as a list of one. Anything
+ * other than text or numbers is refused by name rather than failing later
+ * with a message about reduce. */
+function listOf(value, name, what) {
+  if (value == null) return [];
+  const list = Array.isArray(value) ? value : [value];
+  if (!list.every((v) => typeof v === "string" || typeof v === "number")) {
+    throw new Error(
+      `home-utility-card: ${name} is ${what}, or a list of them, not ${JSON.stringify(value)}.`
+    );
+  }
+  return list;
 }
 
 /* Excludes may be written as an entity id or as a bare name - the ranked
@@ -355,6 +371,7 @@ class HomeUtilityCard extends HTMLElement {
     const given = config || {};
     const cfg = { ...DEFAULTS, ...given };
     cfg.price = { ...DEFAULTS.price, ...(given.price || {}) };
+    cfg.price.curve_add = listOf(cfg.price.curve_add, "price.curve_add", "a number or an entity");
 
     /* `labels:` was this key's name before the four cards were brought onto one
      * vocabulary. Accepted silently so an existing dashboard keeps working;
@@ -416,7 +433,9 @@ class HomeUtilityCard extends HTMLElement {
      * exact id. As a prefix, household: sensor.home_power would also take
      * sensor.home_office_desk_power with it, and nothing would say why. */
     cfg.flowIds = new Set(FLOW_KEYS.map((k) => cfg[k]).filter(Boolean));
-    cfg.exclude = (given.exclude || []).map((v) => toStem(v, cfg));
+    cfg.exclude = listOf(given.exclude, "exclude", "a name or an entity id").map((v) =>
+      toStem(v, cfg)
+    );
 
     this._config = cfg;
     this._sig = null; // force a redraw on the next hass tick
@@ -653,7 +672,7 @@ class HomeUtilityCard extends HTMLElement {
     price.curveStamp = curveSt ? curveSt.last_updated : null;
 
     price.factor = numberFrom(hass, p.curve_multiply, 1);
-    price.offset = (p.curve_add || []).reduce((sum, item) => sum + numberFrom(hass, item, 0), 0);
+    price.offset = p.curve_add.reduce((sum, item) => sum + numberFrom(hass, item, 0), 0);
 
     /* Parsed once per update of the entity that carries it.
      *
@@ -785,8 +804,11 @@ class HomeUtilityCard extends HTMLElement {
 
     rows.push(splitBar(f));
 
-    const solarValue =
-      f.forecast === null || f.solar === null
+    /* "?" is a meter that has no reading; without solar configured there is
+     * no meter to ask, and the figure is "-". */
+    const solarValue = !c.solar
+      ? "-"
+      : f.forecast === null || f.solar === null
         ? amount(f.solar, c.decimals, f.unit)
         : `${amount(f.solar, c.decimals, f.unit)} ` +
           `<i class="fc">(${esc(L.forecast)} ${amount(f.forecast, c.decimals, f.unit)})</i>`;
@@ -875,7 +897,7 @@ class HomeUtilityCard extends HTMLElement {
 
     rows.push(
       headline(
-        p.now === null ? "-" : fixed(p.now, d),
+        p.now === null ? "?" : fixed(p.now, d),
         esc(p.unit || ""),
         cheapest,
         c.price.entity

@@ -126,7 +126,7 @@ The biggest consumers, ranked, under the flow figures.
 | `devices` | a whole number, `0` or more | `0` | How many devices to list. `0` hides the list. |
 | `suffix` | text | none | The ending of the per-device entity ids to rank, such as `_power` or `_energy_daily`. Required when `devices` is more than 0. |
 | `domain` | a domain | `sensor` | The domain the per-device entities are in. |
-| `exclude` | a list of entity ids or names | `[]` | Devices to leave out. A name matches whole leading parts of the entity id: `kitchen` leaves out `sensor.kitchen_*` but not `sensor.kitchenette_*`. The entities given for the flow (`household`, `solar`, `grid`, …) are left out by themselves, without their name parts. |
+| `exclude` | a name or an entity id, or a list of them | `[]` | Devices to leave out. A name matches whole leading parts of the entity id: `kitchen` leaves out `sensor.kitchen_*` but not `sensor.kitchenette_*`. The entities given for the flow (`household`, `solar`, `grid`, …) are left out by themselves, without their name parts. |
 | `floor` | a number | `0` | Values at or below this count as idle and aren't listed. |
 | `strip` | a regular expression, or `""` | see below | Taken off the end of each device's name, ignoring case. `""` keeps the names as they are. |
 | `separator` | text, or `""` | `" · "` | Replaces the `\|` and `/` between the parts of a device's name. `""` leaves them as they are. |
@@ -152,7 +152,7 @@ The price block is drawn when `price.entity` is set. All of these go under
 | `curve_entity` | a sensor entity | `price.entity` | The entity the curve's prices are read from. |
 | `curve_attribute` | an attribute name | found by itself | The attribute that holds the list of prices. Leave it out and the card looks through the entity's attributes itself (see below). |
 | `curve_multiply` | a number, or an entity holding one | `1` | Every point of the curve is multiplied by this first. |
-| `curve_add` | a list of numbers and/or entities | `[]` | Added to every point after multiplying. Entities count with their current state. |
+| `curve_add` | a number or an entity, or a list of them | `[]` | Added to every point after multiplying. Entities count with their current state. |
 | `window_back` | a number of hours | `3` | How much of the past the curve shows. |
 | `window_ahead` | a number of hours | `36` | How far ahead the curve shows, as far as the entity has prices. `0` counts as 24. |
 | `decimals` | a whole number, `0` to `100` | `3` | Decimals in the price block. |
